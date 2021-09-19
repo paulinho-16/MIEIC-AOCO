@@ -1,0 +1,168 @@
+Aux			DCD		0x420c0000, 0x42040000, 0x44906000
+			
+			;		Final Signal: R2, Final Expoent: R3, Final Mantissa: R4
+			ldr		R1, =Aux
+			bl		result_zero
+			bl		final_sinal
+			bl		final_expoent
+			bl		final_mantissa
+			end
+			
+sinal		lsr		R0, R0, #31
+			mov		PC, LR
+			
+expoentereal	lsl		R0, R0, #1
+			lsr		R0, R0, #24
+			sub		R0, R0, #127
+			mov		PC, LR
+			
+mantissa		lsl		R0, R0, #9 ;ldr		R1, =0x007fffff
+			lsr		R0, R0, #9 ;;AND		R2,R2,R1
+			ADD		R0, R0, #0x00800000
+			mov		PC, LR
+			
+result_zero	ldr		R0, [R1]
+			cmp		R0,#0
+			beq		fim
+			ldr		R0, [R1, #4]
+			beq		fim
+			mov		PC, LR
+			
+final_sinal	mov		R13, LR
+			ldr		R0, [R1]
+			bl		sinal
+			mov		R4, R0
+			ldr		R0, [R1,#4]
+			bl		sinal
+			mov		R5, R0
+			mov		R2, #1
+			cmp		R4, R5
+			moveq	R2,#0
+			mov		PC,R13
+			
+final_expoent	mov		R13, LR
+			ldr		R0, [R1]
+			bl		expoentereal
+			mov		R4, R0
+			ldr		R0, [R1, #4]
+			bl		expoentereal
+			mov		R5,R0
+			add		R3, R4,R5
+			mov		PC, R13
+			
+final_mantissa	mov		R13, LR
+			ldr		R0, [R1]
+			bl		mantissa
+			mov		R4, R0
+			ldr		R0, [R1, #4]
+			bl		mantissa
+			mov		R5,R0
+			bl		calcshiftbits
+			bl		peasantmul
+			bl		finalnumber
+			mov		PC, R13
+			
+calcshiftbits	mov		R12, LR
+			mov		R9, #0
+loop1		lsr		R4, R4, #1
+			add		R9, R9, #1
+			mov		R7, #0xfffffffe
+			orr		R6, R4, R7
+			mov		R7, #0xffffffff
+			cmp		R6, R7
+			beq		done1
+			b		loop1
+done1		mov		R10, #0
+loop2		lsr		R5, R5, #1
+			add		R10, R10, #1
+			mov		R7, #0xfffffffe
+			orr		R8, R5, R7
+			mov		R7, #0xffffffff
+			cmp		R8, R7
+			beq		done2
+			b		loop2
+done2		ldr		R0, [R1]
+			bl		mantissa
+			mov		R4, R0
+			ldr		R0, [R1, #4]
+			bl		mantissa
+			mov		R5,R0
+			cmp		R10, R9
+			mov		R0, R10
+			movpl	R0, R9
+			lsr		R4, R4, R0
+			lsr		R5, R5, R0
+			mov		R10, R4
+			mov		R11, R5
+			mov		PC, R12
+			
+			
+			
+peasantmul	mov		R12, LR
+			mov		R0, #0
+loop3		mov		R7, #0xfffffffe
+			orr		R8, R4, R7
+			mov		R7, #0xffffffff
+			cmp		R8, R7
+			addeq	R0, R0, R5
+			lsl		R5, R5, #1
+			lsr		R4, R4, #1
+			cmp		R4, #1
+			beq		done3
+			b		loop3
+done3		add		R4, R0, R5
+			
+			bl		normalize
+			mov		PC, R12
+			
+finalnumber	mov		R12, LR
+			add		R3, R3, #127
+			mov		R0, #0
+			lsl		R2,R2, #31
+			add		R0, R0, R2
+			lsl		R3, R3, #23
+			add		R0, R0, R3
+			mov		R6, #0
+			mov		R5, R4
+loop4		add		R6, R6, #1
+			lsr		R5, R5, #1
+			cmp		R5, #1
+			beq		done4
+			b		loop4
+			
+done4		rsb		R7, R6, #32
+			lsl		R4, R4, R7
+			lsr		R4, R4, R7
+			rsb		R6, R6, #23
+			lsl		R4, R4, R6
+			add		R0, R0, R4
+			mov		PC, R12
+			
+normalize		mov		R9, LR
+			mov		R7, #0
+loopn1		add		R7, R7, #1
+			lsr		R10, R10, #1
+			cmp		R10, #1
+			beq		donen1
+			b		loopn1
+donen1		mov		R10, R7
+			mov		R7, #0
+loopn2		add		R7, R7, #1
+			lsr		R11, R11, #1
+			cmp		R11, #1
+			beq		donen2
+			b		loopn2
+donen2		add		R10, R10, R7
+			mov		R7, #0
+			mov		R11, R4
+loopn3		add		R7, R7, #1
+			lsr		R11, R11, #1
+			cmp		R11, #1
+			beq		donen3
+			b		loopn3
+donen3		sub		R7, R7, R10
+			add		R3, R3,R7
+			mov		PC, R9
+			
+			
+fim			end

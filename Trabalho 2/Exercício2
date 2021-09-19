@@ -1,0 +1,23 @@
+Aux			DCD		0x7f800000, 0x007fffff, 0x7fffffff
+			
+			ldr		R0, =Aux
+			ldr		R2,[R0,#8]
+			bl		sinal
+			ldr		R2,[R0,#8]
+			bl		expoentereal
+			ldr		R2,[R0,#8]
+			bl		mantissa
+			end
+			
+sinal		lsr		R2,R2,#31
+			mov		PC,LR
+			
+expoentereal	lsl		R2,R2,#1
+			lsr		R2,R2,#24
+			sub		R2,R2,#127
+			mov		PC,LR
+			
+mantissa		lsl		R2,R2,#9
+			lsr		R2,R2,#9
+			add		R2,R2,#0x00800000
+			mov		PC,LR
